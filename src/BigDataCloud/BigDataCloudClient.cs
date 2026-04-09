@@ -203,7 +203,7 @@ public sealed class IpGeolocationApi
     {
         var p = BuildParams(ipAddress, localityLanguage);
         return _client.GetAsync<IpGeolocationWithConfidenceAreaResponse>(
-            "ip-geolocation-with-confidence-area", p, cancellationToken);
+            "ip-geolocation-with-confidence", p, cancellationToken);
     }
 
     /// <summary>
@@ -270,6 +270,19 @@ public sealed class ReverseGeocodingApi
     {
         var p = BuildParams(latitude, longitude, localityLanguage);
         return _client.GetAsync<ReverseGeocodeResponse>("reverse-geocode-to-city", p, cancellationToken);
+    }
+
+    /// <summary>
+    /// Converts GPS coordinates to a city, locality, region AND timezone in a single call.
+    /// </summary>
+    public Task<ReverseGeocodeWithTimezoneResponse> ReverseGeocodeWithTimezoneAsync(
+        double latitude,
+        double longitude,
+        string localityLanguage = "en",
+        CancellationToken cancellationToken = default)
+    {
+        var p = BuildParams(latitude, longitude, localityLanguage);
+        return _client.GetAsync<ReverseGeocodeWithTimezoneResponse>("reverse-geocode-with-timezone", p, cancellationToken);
     }
 
     private static List<(string, string)> BuildParams(double latitude, double longitude, string localityLanguage) =>
@@ -445,6 +458,22 @@ public sealed class NetworkEngineeringApi
         if (ipAddress != null) p.Add(("ip", ipAddress));
         return _client.GetAsync<UserRiskResponse>("user-risk", p, ct);
     }
+
+    /// <summary>Returns a list of all countries with full details.</summary>
+    public Task<List<CountryInfoResponse>> GetAllCountriesAsync(
+        string localityLanguage = "en", CancellationToken ct = default) =>
+        _client.GetAsync<List<CountryInfoResponse>>("countries",
+            new List<(string, string)>(1) { ("localityLanguage", localityLanguage) }, ct);
+
+    /// <summary>Returns IPv4 address space registration and BGP announcement statistics.</summary>
+    public Task<System.Text.Json.JsonElement> GetIpv4AddressSpaceStatsAsync(CancellationToken ct = default) =>
+        _client.GetAsync<System.Text.Json.JsonElement>("address-space-stats-ipv4",
+            new List<(string, string)>(0), ct);
+
+    /// <summary>Returns IPv6 address space registration and BGP announcement statistics.</summary>
+    public Task<System.Text.Json.JsonElement> GetIpv6AddressSpaceStatsAsync(CancellationToken ct = default) =>
+        _client.GetAsync<System.Text.Json.JsonElement>("address-space-stats-ipv6",
+            new List<(string, string)>(0), ct);
 }
 
 /// <summary>Timezone API methods.</summary>

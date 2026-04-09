@@ -27,6 +27,12 @@ public class LocalityInfo
     [JsonPropertyName("informative")]    public List<LocalityItem>? Informative { get; set; }
 }
 
+/// <summary>Response from the Reverse Geocode with Timezone API.</summary>
+public class ReverseGeocodeWithTimezoneResponse : ReverseGeocodeResponse
+{
+    [JsonPropertyName("timeZone")] public TimezoneResponse? TimeZone { get; set; }
+}
+
 public class LocalityItem
 {
     [JsonPropertyName("name")]        public string? Name { get; set; }
