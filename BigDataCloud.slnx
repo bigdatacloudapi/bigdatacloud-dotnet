@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/BigDataCloud/BigDataCloud.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/BigDataCloud.Tests/BigDataCloud.Tests.csproj" />
+  </Folder>
+</Solution>
