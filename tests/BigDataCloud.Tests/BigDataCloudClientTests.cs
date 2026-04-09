@@ -80,7 +80,7 @@ public class BigDataCloudClientTests
         var result = await client.IpGeolocation.GetFullAsync("1.1.1.1");
 
         Assert.NotNull(result.HazardReport);
-        Assert.False(result.HazardReport!.IsVpn);
+        Assert.False(result.HazardReport!.IsKnownAsVpn);
         Assert.Equal(80, result.HazardReport.HostingLikelihood);
         Assert.Single(result.ConfidenceArea!);
     }
