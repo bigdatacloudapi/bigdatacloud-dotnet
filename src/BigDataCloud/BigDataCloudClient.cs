@@ -465,15 +465,6 @@ public sealed class NetworkEngineeringApi
         _client.GetAsync<List<CountryInfoResponse>>("countries",
             new List<(string, string)>(1) { ("localityLanguage", localityLanguage) }, ct);
 
-    /// <summary>Returns IPv4 address space registration and BGP announcement statistics.</summary>
-    public Task<System.Text.Json.JsonElement> GetIpv4AddressSpaceStatsAsync(CancellationToken ct = default) =>
-        _client.GetAsync<System.Text.Json.JsonElement>("address-space-stats-ipv4",
-            new List<(string, string)>(0), ct);
-
-    /// <summary>Returns IPv6 address space registration and BGP announcement statistics.</summary>
-    public Task<System.Text.Json.JsonElement> GetIpv6AddressSpaceStatsAsync(CancellationToken ct = default) =>
-        _client.GetAsync<System.Text.Json.JsonElement>("address-space-stats-ipv6",
-            new List<(string, string)>(0), ct);
 }
 
 /// <summary>Timezone API methods.</summary>
