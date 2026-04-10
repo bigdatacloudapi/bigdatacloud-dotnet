@@ -89,7 +89,7 @@ Console.WriteLine($"Flag:         {countryInfo.CountryFlagEmoji}");
 
 // ── 10. Timezone by IP ────────────────────────────────────────────────────────
 Console.WriteLine("\n=== Timezone by IP ===");
-var tz = await client.Timezone.GetByIpAsync("203.10.76.1");
+var tz = await client.IpGeolocation.GetTimezoneByIpAsync("203.10.76.1");
 Console.WriteLine($"IANA ID:   {tz.IanaTimeId}");
 Console.WriteLine($"Offset:    {tz.UtcOffset}");
 Console.WriteLine($"DST:       {tz.IsDaylightSavingTime}");
@@ -97,7 +97,7 @@ Console.WriteLine($"Local Time:{tz.LocalTime}");
 
 // ── 11. User Agent ────────────────────────────────────────────────────────────
 Console.WriteLine("\n=== User Agent ===");
-var ua = await client.UserAgent.ParseAsync(
+var ua = await client.IpGeolocation.ParseUserAgentAsync(
     "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1");
 Console.WriteLine($"Device:   {ua.Device}");
 Console.WriteLine($"OS:       {ua.Os}");

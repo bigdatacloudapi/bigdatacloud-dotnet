@@ -45,12 +45,6 @@ public sealed class BigDataCloudClient : IDisposable
     /// <summary>Network Engineering API endpoints.</summary>
     public NetworkEngineeringApi NetworkEngineering { get; }
 
-    /// <summary>Timezone API endpoints.</summary>
-    public TimezoneApi Timezone { get; }
-
-    /// <summary>User Agent parser endpoint.</summary>
-    public UserAgentApi UserAgent { get; }
-
     /// <summary>
     /// GraphQL interface — one endpoint per API package.
     /// Use the fluent query builders to select exactly the fields you need.
@@ -120,8 +114,6 @@ public sealed class BigDataCloudClient : IDisposable
         ReverseGeocoding = new ReverseGeocodingApi(this);
         Verification = new VerificationApi(this);
         NetworkEngineering = new NetworkEngineeringApi(this);
-        Timezone = new TimezoneApi(this);
-        UserAgent = new UserAgentApi(this);
         GraphQL = new GraphQlClient(_http, _apiKey);
     }
 
@@ -253,6 +245,45 @@ public sealed class IpGeolocationApi
         var p = BuildParams(ipAddress, localityLanguage);
         return _client.GetAsync<IpGeolocationFullResponse>(
             "ip-geolocation-full", p, cancellationToken);
+    }
+
+    /// <summary>Returns timezone information for an IANA timezone ID.</summary>
+    /// <param name="ianaTimeZoneId">IANA timezone ID, e.g. "Australia/Sydney".</param>
+    /// <param name="utcReferenceSeconds">UTC reference time in Unix seconds. Omit for current time.</param>
+    public Task<TimezoneResponse> GetTimezoneByIanaIdAsync(
+        string ianaTimeZoneId, long? utcReferenceSeconds = null, CancellationToken cancellationToken = default)
+    {
+        var p = new List<(string, string)>(2) { ("timeZoneId", ianaTimeZoneId) };
+        if (utcReferenceSeconds.HasValue) p.Add(("utcReference", utcReferenceSeconds.Value.ToString()));
+        return _client.GetAsync<TimezoneResponse>("timezone-info", p, cancellationToken);
+    }
+
+    /// <summary>Returns timezone information for GPS coordinates.</summary>
+    public Task<TimezoneResponse> GetTimezoneByLocationAsync(
+        double latitude, double longitude, CancellationToken cancellationToken = default) =>
+        _client.GetAsync<TimezoneResponse>("timezone-by-location",
+            new List<(string, string)>(2) {
+                ("latitude",  latitude.ToString("G", System.Globalization.CultureInfo.InvariantCulture)),
+                ("longitude", longitude.ToString("G", System.Globalization.CultureInfo.InvariantCulture)),
+            }, cancellationToken);
+
+    /// <summary>Returns timezone information for an IP address.</summary>
+    public Task<TimezoneResponse> GetTimezoneByIpAsync(
+        string? ipAddress = null, CancellationToken cancellationToken = default)
+    {
+        var p = new List<(string, string)>(1);
+        if (ipAddress != null) p.Add(("ip", ipAddress));
+        return _client.GetAsync<TimezoneResponse>("timezone-by-ip", p, cancellationToken);
+    }
+
+    /// <summary>Parses a User-Agent string into structured device, OS and browser info.</summary>
+    public Task<UserAgentResponse> ParseUserAgentAsync(
+        string userAgentString, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userAgentString))
+            throw new ArgumentException("User-Agent string must not be empty.", nameof(userAgentString));
+        return _client.GetAsync<UserAgentResponse>("user-agent-info",
+            new List<(string, string)>(1) { ("userAgentRaw", userAgentString) }, cancellationToken);
     }
 
     private static List<(string, string)> BuildParams(string? ipAddress, string localityLanguage)
@@ -491,56 +522,4 @@ public sealed class NetworkEngineeringApi
 
 }
 
-/// <summary>Timezone API methods.</summary>
-public sealed class TimezoneApi
-{
-    private readonly BigDataCloudClient _client;
-    internal TimezoneApi(BigDataCloudClient client) => _client = client;
 
-    /// <summary>Returns timezone information for an IANA timezone ID.</summary>
-    /// <param name="ianaTimeZoneId">IANA timezone ID, e.g. "Australia/Sydney".</param>
-    /// <param name="utcReferenceMs">UTC reference time in Unix milliseconds. Omit for current time.</param>
-    public Task<TimezoneResponse> GetByIanaIdAsync(
-        string ianaTimeZoneId, long? utcReferenceMs = null, CancellationToken ct = default)
-    {
-        var p = new List<(string, string)>(2) { ("timeZoneId", ianaTimeZoneId) };
-        if (utcReferenceMs.HasValue) p.Add(("utcReference", utcReferenceMs.Value.ToString()));
-        return _client.GetAsync<TimezoneResponse>("timezone-info", p, ct);
-    }
-
-    /// <summary>Returns timezone information for GPS coordinates.</summary>
-    public Task<TimezoneResponse> GetByLocationAsync(
-        double latitude, double longitude, CancellationToken ct = default) =>
-        _client.GetAsync<TimezoneResponse>("timezone-by-location",
-            new List<(string, string)>(2) {
-                ("latitude",  latitude.ToString("G", System.Globalization.CultureInfo.InvariantCulture)),
-                ("longitude", longitude.ToString("G", System.Globalization.CultureInfo.InvariantCulture)),
-            }, ct);
-
-    /// <summary>Returns timezone information for an IP address.</summary>
-    public Task<TimezoneResponse> GetByIpAsync(
-        string? ipAddress = null, CancellationToken ct = default)
-    {
-        var p = new List<(string, string)>(1);
-        if (ipAddress != null) p.Add(("ip", ipAddress));
-        return _client.GetAsync<TimezoneResponse>("timezone-by-ip", p, ct);
-    }
-}
-
-/// <summary>User Agent parser API.</summary>
-public sealed class UserAgentApi
-{
-    private readonly BigDataCloudClient _client;
-    internal UserAgentApi(BigDataCloudClient client) => _client = client;
-
-    /// <summary>Parses a User-Agent string into structured device, OS and browser info.</summary>
-    public Task<UserAgentResponse> ParseAsync(
-        string userAgentString, CancellationToken ct = default)
-    {
-        if (string.IsNullOrWhiteSpace(userAgentString))
-            throw new ArgumentException("User-Agent string must not be empty.", nameof(userAgentString));
-
-        return _client.GetAsync<UserAgentResponse>("user-agent-info",
-            new List<(string, string)>(1) { ("userAgentRaw", userAgentString) }, ct);
-    }
-}
