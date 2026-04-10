@@ -1,4 +1,20 @@
 <Solution>
+  <Folder Name="/samples/" />
+  <Folder Name="/samples/GraphQL/">
+    <Project Path="samples/GraphQL/BigDataCloud.Samples.GraphQL.csproj" />
+  </Folder>
+  <Folder Name="/samples/IpGeolocation/">
+    <Project Path="samples/IpGeolocation/BigDataCloud.Samples.IpGeolocation.csproj" />
+  </Folder>
+  <Folder Name="/samples/NetworkEngineering/">
+    <Project Path="samples/NetworkEngineering/BigDataCloud.Samples.NetworkEngineering.csproj" />
+  </Folder>
+  <Folder Name="/samples/ReverseGeocoding/">
+    <Project Path="samples/ReverseGeocoding/BigDataCloud.Samples.ReverseGeocoding.csproj" />
+  </Folder>
+  <Folder Name="/samples/Verification/">
+    <Project Path="samples/Verification/BigDataCloud.Samples.Verification.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/BigDataCloud/BigDataCloud.csproj" />
   </Folder>

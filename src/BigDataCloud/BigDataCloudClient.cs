@@ -2,6 +2,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using BigDataCloud.Exceptions;
+using BigDataCloud.GraphQL;
 using BigDataCloud.Models;
 
 namespace BigDataCloud;
@@ -51,6 +52,40 @@ public sealed class BigDataCloudClient : IDisposable
     public UserAgentApi UserAgent { get; }
 
     /// <summary>
+    /// GraphQL interface — one endpoint per API package.
+    /// Use the fluent query builders to select exactly the fields you need.
+    /// </summary>
+    public GraphQlClient GraphQL { get; }
+
+    /// <summary>
+    /// Creates a <see cref="BigDataCloudClient"/> using the API key from the
+    /// <c>BIGDATACLOUD_API_KEY</c> environment variable.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown when the environment variable is not set.</exception>
+    /// <example>
+    /// Set the key for local development:
+    /// <code>
+    /// dotnet user-secrets set "BIGDATACLOUD_API_KEY" "your-key-here"
+    /// </code>
+    /// Or set as an environment variable in production:
+    /// <code>
+    /// export BIGDATACLOUD_API_KEY=your-key-here
+    /// </code>
+    /// Then create the client:
+    /// <code>
+    /// var client = BigDataCloudClient.FromEnvironment();
+    /// </code>
+    /// </example>
+    public static BigDataCloudClient FromEnvironment()
+    {
+        var key = Environment.GetEnvironmentVariable("BIGDATACLOUD_API_KEY")
+            ?? throw new InvalidOperationException(
+                "BIGDATACLOUD_API_KEY environment variable is not set. " +
+                "Set it with: export BIGDATACLOUD_API_KEY=your-key-here");
+        return new BigDataCloudClient(key);
+    }
+
+    /// <summary>
     /// Initialises a new BigDataCloudClient with a managed HttpClient optimised for
     /// high-concurrency workloads.
     /// </summary>
@@ -87,6 +122,7 @@ public sealed class BigDataCloudClient : IDisposable
         NetworkEngineering = new NetworkEngineeringApi(this);
         Timezone = new TimezoneApi(this);
         UserAgent = new UserAgentApi(this);
+        GraphQL = new GraphQlClient(_http, _apiKey);
     }
 
     /// <summary>
