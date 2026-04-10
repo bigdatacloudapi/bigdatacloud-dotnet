@@ -23,7 +23,12 @@ var geoArea = await client.IpGeolocation.GetWithConfidenceAreaAsync("49.36.50.17
 Console.WriteLine($"IP:         {geoArea.Ip}");
 Console.WriteLine($"City:       {geoArea.Location?.City}, {geoArea.Country?.Name}");
 Console.WriteLine($"Confidence: {geoArea.Confidence}");
-Console.WriteLine($"Area Points: {geoArea.ConfidenceArea?.Count ?? 0} polygon vertices");
+Console.WriteLine($"Total Points: {geoArea.ConfidenceArea?.Count ?? 0}");
+// The confidence area may contain multiple polygons — use ConfidenceAreaHelper to split them
+var polygons = ConfidenceAreaHelper.SplitIntoPolygons(geoArea.ConfidenceArea);
+Console.WriteLine($"Polygons: {polygons.Count} (each is a separate closed ring)");
+foreach (var ring in polygons)
+    Console.WriteLine($"  Ring: {ring.Count} points");
 
 // ── 3. Full Geolocation with Hazard Report ───────────────────────────────────
 Console.WriteLine("\n=== Full Geolocation + Hazard Report ===");

@@ -136,8 +136,13 @@ public class AsnInfoResponse
     [JsonPropertyName("transitTo")]              public List<Carrier>? TransitTo { get; set; }
 
     /// <summary>
-    /// The most active geographical area detected for this ASN, represented as a closed polygon of latitude/longitude coordinates.
-    /// Useful for mapping the ASN's primary operational footprint.
+    /// A flat list of latitude/longitude points encoding one or more closed polygons representing the ASN's most active
+    /// geographical service area.
+    /// <para>
+    /// <strong>Important:</strong> this array may encode multiple polygons concatenated together. Do not treat it as a
+    /// single polygon ring. Use <see cref="BigDataCloud.ConfidenceAreaHelper.SplitIntoPolygons"/> to split it into
+    /// individual rings before rendering or performing spatial operations.
+    /// </para>
     /// </summary>
     [JsonPropertyName("confidenceArea")]         public List<GeoPoint>? ConfidenceArea { get; set; }
 }

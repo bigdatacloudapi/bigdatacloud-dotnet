@@ -40,8 +40,13 @@ public class IpGeolocationWithConfidenceAreaResponse : IpGeolocationResponse
     [JsonPropertyName("confidence")] public string? Confidence { get; set; }
 
     /// <summary>
-    /// A closed polygon (list of latitude/longitude points) representing the maximum possible service area where this IP address could be located.
-    /// Based on ISP historical allocation patterns and network topology. Use this to display an uncertainty region on a map.
+    /// A flat list of latitude/longitude points encoding one or more closed polygons representing the maximum possible
+    /// service area where this IP address could be located. Based on ISP historical allocation patterns and network topology.
+    /// <para>
+    /// <strong>Important:</strong> this array may encode multiple polygons concatenated together. Do not treat it as a
+    /// single polygon ring. Use <see cref="BigDataCloud.ConfidenceAreaHelper.SplitIntoPolygons"/> to split it into
+    /// individual rings before rendering or performing spatial operations.
+    /// </para>
     /// </summary>
     [JsonPropertyName("confidenceArea")] public List<GeoPoint>? ConfidenceArea { get; set; }
 }
