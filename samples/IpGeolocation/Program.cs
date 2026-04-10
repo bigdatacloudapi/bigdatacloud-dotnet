@@ -37,7 +37,7 @@ Console.WriteLine($"Hosting Score:  {geoFull.HazardReport?.HostingLikelihood}/10
 
 // ── 4. Country by IP ─────────────────────────────────────────────────────────
 Console.WriteLine("\n=== Country by IP ===");
-var country = await client.IpGeolocation.GetCountryAsync("2600:4040:b38a:8800:dcc:8d40:1994:3881");
+var country = await client.IpGeolocation.GetCountryByIpAsync("2600:4040:b38a:8800:dcc:8d40:1994:3881");
 Console.WriteLine($"IP:       {country.Ip}");
 Console.WriteLine($"Country:  {country.Country?.Name} ({country.Country?.IsoAlpha2})");
 Console.WriteLine($"Currency: {country.Country?.Currency?.Code} — {country.Country?.Currency?.Name}");
@@ -45,7 +45,7 @@ Console.WriteLine($"Calling:  +{country.Country?.CallingCode}");
 
 // ── 5. Network by IP ─────────────────────────────────────────────────────────
 Console.WriteLine("\n=== Network by IP ===");
-var netByIp = await client.NetworkEngineering.GetNetworkByIpAsync("8.8.8.8");
+var netByIp = await client.IpGeolocation.GetNetworkByIpAsync("8.8.8.8");
 Console.WriteLine($"BGP Prefix:   {netByIp.BgpPrefix}");
 Console.WriteLine($"Organisation: {netByIp.Organisation}");
 Console.WriteLine($"Registry:     {netByIp.Registry}");
@@ -53,8 +53,8 @@ Console.WriteLine($"Country:      {netByIp.RegisteredCountryName}");
 Console.WriteLine($"Carriers:     {netByIp.Carriers?.Count ?? 0}");
 
 // ── 6. ASN Info (short) ──────────────────────────────────────────────────────
-Console.WriteLine("=== ASN Info (short) ===");
-var asnShort = await client.NetworkEngineering.GetAsnInfoShortAsync("AS13335");
+Console.WriteLine("\n=== ASN Info (short) ===");
+var asnShort = await client.IpGeolocation.GetAsnInfoAsync("AS13335");
 Console.WriteLine($"ASN:          {asnShort.Asn} ({asnShort.AsnNumeric})");
 Console.WriteLine($"Organisation: {asnShort.Organisation}");
 Console.WriteLine($"Name:         {asnShort.Name}");
@@ -66,7 +66,7 @@ Console.WriteLine($"Rank:         {asnShort.RankText}");
 
 // ── 7. Hazard Report ─────────────────────────────────────────────────────────
 Console.WriteLine("\n=== Hazard Report ===");
-var hazard = await client.NetworkEngineering.GetHazardReportAsync("91.108.4.1");
+var hazard = await client.IpGeolocation.GetHazardReportAsync("91.108.4.1");
 Console.WriteLine($"Is Tor:         {hazard.IsKnownAsTorServer}");
 Console.WriteLine($"Is VPN:         {hazard.IsKnownAsVpn}");
 Console.WriteLine($"Hosting Score:  {hazard.HostingLikelihood}/10");
@@ -74,13 +74,13 @@ Console.WriteLine($"Spamhaus DROP:  {hazard.IsSpamhausDrop}");
 
 // ── 8. User Risk ─────────────────────────────────────────────────────────────
 Console.WriteLine("\n=== User Risk ===");
-var risk = await client.NetworkEngineering.GetUserRiskAsync("1.1.1.1");
+var risk = await client.IpGeolocation.GetUserRiskAsync("1.1.1.1");
 Console.WriteLine($"Risk:        {risk.Risk}");
 Console.WriteLine($"Description: {risk.Description}");
 
 // ── 9. Country Info ──────────────────────────────────────────────────────────
 Console.WriteLine("\n=== Country Info (AU) ===");
-var countryInfo = await client.NetworkEngineering.GetCountryInfoAsync("AU");
+var countryInfo = await client.IpGeolocation.GetCountryInfoAsync("AU");
 Console.WriteLine($"Name:         {countryInfo.Name} ({countryInfo.IsoAlpha2})");
 Console.WriteLine($"Full name:    {countryInfo.IsoNameFull}");
 Console.WriteLine($"Region:       {countryInfo.UnRegion}");

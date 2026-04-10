@@ -117,50 +117,33 @@ public sealed class BigDataCloudClient : IDisposable
         GraphQL = new GraphQlClient(_http, _apiKey);
     }
 
-    /// <summary>
-    /// Creates a well-configured HttpClient suitable for high-concurrency API usage.
-    /// Uses SocketsHttpHandler with connection pooling and keep-alive tuned for API workloads.
-    /// </summary>
     private static HttpClient CreateDefaultHttpClient(string baseUrl)
     {
-        // HttpClientHandler is available on all targets including netstandard2.0.
-        // SocketsHttpHandler is .NET Core 2.1+ only — the runtime will use it automatically
-        // on supported platforms; HttpClientHandler delegates to it under the hood.
         var handler = new HttpClientHandler();
-
         var http = new HttpClient(handler)
         {
             BaseAddress = new Uri(baseUrl),
-            // Per-request timeout — prevents hung connections piling up under load
             Timeout = TimeSpan.FromSeconds(30),
         };
-
         http.DefaultRequestHeaders.Add("Accept", "application/json");
         return http;
     }
 
-    /// <summary>
-    /// Core HTTP GET + deserialise method. Thread-safe — builds URL from immutable state only.
-    /// </summary>
     internal async Task<T> GetAsync<T>(
         string endpoint,
         IReadOnlyList<(string Key, string Value)> parameters,
         CancellationToken cancellationToken = default)
     {
-        // Build query string without mutating shared state
         var url = BuildUrl(endpoint, parameters);
 
         using var response = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
             .ConfigureAwait(false);
 
-        // Stream deserialisation — avoids allocating the full response as a string
-        // ReadAsStreamAsync is safe on all targets; Stream disposal is sync in netstandard2.0
         using var stream = await response.Content.ReadAsStreamAsync()
             .ConfigureAwait(false);
 
         if (!response.IsSuccessStatusCode)
         {
-            // Read body only on error (rare path) — safe to buffer
             using var reader = new System.IO.StreamReader(stream);
             var body = await reader.ReadToEndAsync().ConfigureAwait(false);
             throw new BigDataCloudException(
@@ -176,18 +159,10 @@ public sealed class BigDataCloudClient : IDisposable
 
     private string BuildUrl(string endpoint, IReadOnlyList<(string Key, string Value)> parameters)
     {
-        // Pre-size: endpoint + "?" + params + "&key=<apiKey>"
         var sb = new StringBuilder(256);
         sb.Append(endpoint).Append('?');
-
         foreach (var (k, v) in parameters)
-        {
-            sb.Append(Uri.EscapeDataString(k))
-              .Append('=')
-              .Append(Uri.EscapeDataString(v))
-              .Append('&');
-        }
-
+            sb.Append(Uri.EscapeDataString(k)).Append('=').Append(Uri.EscapeDataString(v)).Append('&');
         sb.Append("key=").Append(Uri.EscapeDataString(_apiKey));
         return sb.ToString();
     }
@@ -195,77 +170,128 @@ public sealed class BigDataCloudClient : IDisposable
     /// <inheritdoc/>
     public void Dispose()
     {
-        // Only dispose HttpClient when we own it — don't dispose injected clients
         if (_ownsHttpClient) _http.Dispose();
     }
 }
 
-/// <summary>IP Geolocation API methods.</summary>
+// ── IP Geolocation Package ────────────────────────────────────────────────────
+// Endpoints: ip-geolocation, ip-geolocation-with-confidence, ip-geolocation-full,
+//            country-by-ip, country-info, hazard-report, user-risk,
+//            asn-short-info, network-by-ip, timezone-by-ip, timezone-info, user-agent-parser
+
+/// <summary>
+/// IP Geolocation package — geolocation, country, network, hazard, timezone, and user-agent endpoints.
+/// </summary>
 public sealed class IpGeolocationApi
 {
     private readonly BigDataCloudClient _client;
     internal IpGeolocationApi(BigDataCloudClient client) => _client = client;
 
-    /// <summary>
-    /// Returns geolocation data for an IP address.
-    /// </summary>
+    /// <summary>Returns geolocation data for an IP address.</summary>
     /// <param name="ipAddress">IPv4 or IPv6 address. Omit to geolocate the caller's IP.</param>
-    /// <param name="localityLanguage">Language for place names (ISO 639-1, e.g. "en"). Default: "en".</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="localityLanguage">Language for place names (ISO 639-1, e.g. "en").</param>
     public Task<IpGeolocationResponse> GetAsync(
-        string? ipAddress = null,
-        string localityLanguage = "en",
+        string? ipAddress = null, string localityLanguage = "en",
         CancellationToken cancellationToken = default)
     {
-        var p = BuildParams(ipAddress, localityLanguage);
-        return _client.GetAsync<IpGeolocationResponse>("ip-geolocation", p, cancellationToken);
+        return _client.GetAsync<IpGeolocationResponse>("ip-geolocation",
+            BuildParams(ipAddress, localityLanguage), cancellationToken);
     }
 
-    /// <summary>
-    /// Returns geolocation data including the confidence area polygon.
-    /// </summary>
+    /// <summary>Returns geolocation data including the confidence area polygon.</summary>
     public Task<IpGeolocationWithConfidenceAreaResponse> GetWithConfidenceAreaAsync(
-        string? ipAddress = null,
-        string localityLanguage = "en",
+        string? ipAddress = null, string localityLanguage = "en",
         CancellationToken cancellationToken = default)
     {
-        var p = BuildParams(ipAddress, localityLanguage);
         return _client.GetAsync<IpGeolocationWithConfidenceAreaResponse>(
-            "ip-geolocation-with-confidence", p, cancellationToken);
+            "ip-geolocation-with-confidence", BuildParams(ipAddress, localityLanguage), cancellationToken);
     }
 
-    /// <summary>
-    /// Returns full geolocation data including confidence area and hazard report.
-    /// </summary>
+    /// <summary>Returns full geolocation data including confidence area and hazard report.</summary>
     public Task<IpGeolocationFullResponse> GetFullAsync(
-        string? ipAddress = null,
-        string localityLanguage = "en",
+        string? ipAddress = null, string localityLanguage = "en",
         CancellationToken cancellationToken = default)
     {
-        var p = BuildParams(ipAddress, localityLanguage);
         return _client.GetAsync<IpGeolocationFullResponse>(
-            "ip-geolocation-full", p, cancellationToken);
+            "ip-geolocation-full", BuildParams(ipAddress, localityLanguage), cancellationToken);
+    }
+
+    /// <summary>Returns country information for an IP address (lightweight, no location data).</summary>
+    public Task<CountryByIpResponse> GetCountryByIpAsync(
+        string? ipAddress = null, string localityLanguage = "en",
+        CancellationToken cancellationToken = default)
+    {
+        return _client.GetAsync<CountryByIpResponse>("country-by-ip",
+            BuildParams(ipAddress, localityLanguage), cancellationToken);
+    }
+
+    /// <summary>Returns detailed information about a country by ISO code.</summary>
+    /// <param name="countryCode">ISO 3166-1 Alpha-2, Alpha-3, or numeric code (e.g. "AU").</param>
+    public Task<CountryInfoResponse> GetCountryInfoAsync(
+        string countryCode, string localityLanguage = "en",
+        CancellationToken cancellationToken = default)
+    {
+        return _client.GetAsync<CountryInfoResponse>("country-info",
+            new List<(string, string)>(2) { ("code", countryCode), ("localityLanguage", localityLanguage) },
+            cancellationToken);
+    }
+
+    /// <summary>Returns a list of all countries with full details.</summary>
+    public Task<List<CountryInfoResponse>> GetAllCountriesAsync(
+        string localityLanguage = "en", CancellationToken cancellationToken = default)
+    {
+        return _client.GetAsync<List<CountryInfoResponse>>("countries",
+            new List<(string, string)>(1) { ("localityLanguage", localityLanguage) }, cancellationToken);
+    }
+
+    /// <summary>Returns a detailed hazard and threat report for an IP address.</summary>
+    public Task<HazardReportResponse> GetHazardReportAsync(
+        string? ipAddress = null, CancellationToken cancellationToken = default)
+    {
+        var p = new List<(string, string)>(1);
+        if (ipAddress != null) p.Add(("ip", ipAddress));
+        return _client.GetAsync<HazardReportResponse>("hazard-report", p, cancellationToken);
+    }
+
+    /// <summary>Returns a risk assessment for an IP address — suitable for e-commerce and sign-up forms.</summary>
+    public Task<UserRiskResponse> GetUserRiskAsync(
+        string? ipAddress = null, CancellationToken cancellationToken = default)
+    {
+        var p = new List<(string, string)>(1);
+        if (ipAddress != null) p.Add(("ip", ipAddress));
+        return _client.GetAsync<UserRiskResponse>("user-risk", p, cancellationToken);
+    }
+
+    /// <summary>Returns short ASN information for the AS announced for an IP address or by ASN number.</summary>
+    /// <param name="asn">ASN in numeric or prefixed format (e.g. "AS13335" or "13335").</param>
+    public Task<AsnInfoShortResponse> GetAsnInfoAsync(
+        string asn, string localityLanguage = "en", CancellationToken cancellationToken = default)
+    {
+        return _client.GetAsync<AsnInfoShortResponse>("asn-info",
+            new List<(string, string)>(2) { ("asn", asn), ("localityLanguage", localityLanguage) },
+            cancellationToken);
+    }
+
+    /// <summary>Returns detailed network information for an IP address including BGP prefix and carrier ASNs.</summary>
+    public Task<NetworkByIpResponse> GetNetworkByIpAsync(
+        string ipAddress, string localityLanguage = "en", CancellationToken cancellationToken = default)
+    {
+        return _client.GetAsync<NetworkByIpResponse>("network-by-ip",
+            new List<(string, string)>(2) { ("ip", ipAddress), ("localityLanguage", localityLanguage) },
+            cancellationToken);
     }
 
     /// <summary>Returns timezone information for an IANA timezone ID.</summary>
-    /// <param name="ianaTimeZoneId">IANA timezone ID, e.g. "Australia/Sydney".</param>
+    /// <param name="ianaTimeZoneId">IANA timezone ID (e.g. "Australia/Sydney").</param>
     /// <param name="utcReferenceSeconds">UTC reference time in Unix seconds. Omit for current time.</param>
     public Task<TimezoneResponse> GetTimezoneByIanaIdAsync(
-        string ianaTimeZoneId, long? utcReferenceSeconds = null, CancellationToken cancellationToken = default)
+        string ianaTimeZoneId, long? utcReferenceSeconds = null,
+        CancellationToken cancellationToken = default)
     {
         var p = new List<(string, string)>(2) { ("timeZoneId", ianaTimeZoneId) };
         if (utcReferenceSeconds.HasValue) p.Add(("utcReference", utcReferenceSeconds.Value.ToString()));
         return _client.GetAsync<TimezoneResponse>("timezone-info", p, cancellationToken);
     }
-
-    /// <summary>Returns timezone information for GPS coordinates.</summary>
-    public Task<TimezoneResponse> GetTimezoneByLocationAsync(
-        double latitude, double longitude, CancellationToken cancellationToken = default) =>
-        _client.GetAsync<TimezoneResponse>("timezone-by-location",
-            new List<(string, string)>(2) {
-                ("latitude",  latitude.ToString("G", System.Globalization.CultureInfo.InvariantCulture)),
-                ("longitude", longitude.ToString("G", System.Globalization.CultureInfo.InvariantCulture)),
-            }, cancellationToken);
 
     /// <summary>Returns timezone information for an IP address.</summary>
     public Task<TimezoneResponse> GetTimezoneByIpAsync(
@@ -292,101 +318,85 @@ public sealed class IpGeolocationApi
         if (ipAddress != null) p.Add(("ip", ipAddress));
         return p;
     }
-
-    /// <summary>Returns country information for an IP address (lightweight, no location data).</summary>
-    public Task<CountryByIpResponse> GetCountryAsync(
-        string? ipAddress = null, string localityLanguage = "en", CancellationToken cancellationToken = default)
-    {
-        var p = new List<(string, string)>(2) { ("localityLanguage", localityLanguage) };
-        if (ipAddress != null) p.Add(("ip", ipAddress));
-        return _client.GetAsync<CountryByIpResponse>("country-by-ip", p, cancellationToken);
-    }
 }
 
-/// <summary>Reverse Geocoding API methods.</summary>
+// ── Reverse Geocoding Package ─────────────────────────────────────────────────
+// Endpoints: reverse-geocode, reverse-geocode-with-timezone, timezone-by-location
+
+/// <summary>
+/// Reverse Geocoding package — GPS coordinates to locality, country, and timezone.
+/// </summary>
 public sealed class ReverseGeocodingApi
 {
     private readonly BigDataCloudClient _client;
     internal ReverseGeocodingApi(BigDataCloudClient client) => _client = client;
 
     /// <summary>
-    /// Converts GPS coordinates to a city, locality, region and full locality info.
+    /// Converts GPS coordinates to a city, locality, subdivision, country, and full locality info.
     /// </summary>
     /// <param name="latitude">Latitude in decimal degrees (WGS 84).</param>
     /// <param name="longitude">Longitude in decimal degrees (WGS 84).</param>
     /// <param name="localityLanguage">Language for place names (ISO 639-1). Default: "en".</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
     public Task<ReverseGeocodeResponse> ReverseGeocodeAsync(
-        double latitude,
-        double longitude,
-        string localityLanguage = "en",
+        double latitude, double longitude, string localityLanguage = "en",
         CancellationToken cancellationToken = default)
     {
-        var p = BuildParams(latitude, longitude, localityLanguage);
-        return _client.GetAsync<ReverseGeocodeResponse>("reverse-geocode", p, cancellationToken);
+        return _client.GetAsync<ReverseGeocodeResponse>("reverse-geocode",
+            BuildParams(latitude, longitude, localityLanguage), cancellationToken);
     }
 
     /// <summary>
-    /// Converts GPS coordinates to a city, locality, region AND timezone in a single call.
+    /// Converts GPS coordinates to locality and timezone in a single call.
     /// </summary>
     public Task<ReverseGeocodeWithTimezoneResponse> ReverseGeocodeWithTimezoneAsync(
-        double latitude,
-        double longitude,
-        string localityLanguage = "en",
+        double latitude, double longitude, string localityLanguage = "en",
         CancellationToken cancellationToken = default)
     {
-        var p = BuildParams(latitude, longitude, localityLanguage);
-        return _client.GetAsync<ReverseGeocodeWithTimezoneResponse>("reverse-geocode-with-timezone", p, cancellationToken);
+        return _client.GetAsync<ReverseGeocodeWithTimezoneResponse>("reverse-geocode-with-timezone",
+            BuildParams(latitude, longitude, localityLanguage), cancellationToken);
     }
 
-    private static List<(string, string)> BuildParams(double latitude, double longitude, string localityLanguage) =>
+    /// <summary>Returns timezone information for GPS coordinates.</summary>
+    public Task<TimezoneResponse> GetTimezoneByLocationAsync(
+        double latitude, double longitude, CancellationToken cancellationToken = default)
+    {
+        return _client.GetAsync<TimezoneResponse>("timezone-by-location",
+            new List<(string, string)>(2) {
+                ("latitude",  latitude.ToString("G", System.Globalization.CultureInfo.InvariantCulture)),
+                ("longitude", longitude.ToString("G", System.Globalization.CultureInfo.InvariantCulture)),
+            }, cancellationToken);
+    }
+
+    private static List<(string, string)> BuildParams(double lat, double lng, string lang) =>
         new(3)
         {
-            ("latitude",  latitude.ToString("G", System.Globalization.CultureInfo.InvariantCulture)),
-            ("longitude", longitude.ToString("G", System.Globalization.CultureInfo.InvariantCulture)),
-            ("localityLanguage", localityLanguage),
+            ("latitude",  lat.ToString("G", System.Globalization.CultureInfo.InvariantCulture)),
+            ("longitude", lng.ToString("G", System.Globalization.CultureInfo.InvariantCulture)),
+            ("localityLanguage", lang),
         };
 }
 
-/// <summary>Phone &amp; Email Verification API methods.</summary>
+// ── Phone & Email Verification Package ───────────────────────────────────────
+// Endpoints: phone-number-validate, phone-number-validate-by-ip, email-verify
+
+/// <summary>Phone &amp; Email Verification package — validate phone numbers and verify email addresses.</summary>
 public sealed class VerificationApi
 {
     private readonly BigDataCloudClient _client;
     internal VerificationApi(BigDataCloudClient client) => _client = client;
 
-    /// <summary>
-    /// Validates a phone number and returns its format and line type.
-    /// </summary>
+    /// <summary>Validates a phone number and returns its E.164 format, line type, and country.</summary>
     /// <param name="phoneNumber">Phone number to validate (E.164 format recommended, e.g. +61412345678).</param>
-    /// <param name="countryCode">ISO 3166-1 alpha-2 country code hint (e.g. "AU"). Optional.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="countryCode">ISO 3166-1 Alpha-2 country code hint (e.g. "AU"). Optional.</param>
     public Task<PhoneValidationResponse> ValidatePhoneAsync(
-        string phoneNumber,
-        string? countryCode = null,
+        string phoneNumber, string? countryCode = null,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(phoneNumber))
             throw new ArgumentException("Phone number must not be empty.", nameof(phoneNumber));
-
         var p = new List<(string, string)>(2) { ("number", phoneNumber) };
         if (countryCode != null) p.Add(("countryCode", countryCode));
         return _client.GetAsync<PhoneValidationResponse>("phone-number-validate", p, cancellationToken);
-    }
-
-    /// <summary>
-    /// Verifies an email address — checks syntax, mail server, and disposable status.
-    /// </summary>
-    /// <param name="emailAddress">Email address to verify.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    public Task<EmailVerificationResponse> VerifyEmailAsync(
-        string emailAddress,
-        CancellationToken cancellationToken = default)
-    {
-        if (string.IsNullOrWhiteSpace(emailAddress))
-            throw new ArgumentException("Email address must not be empty.", nameof(emailAddress));
-
-        var p = new List<(string, string)>(1) { ("emailAddress", emailAddress) };
-        return _client.GetAsync<EmailVerificationResponse>("email-verify", p, cancellationToken);
     }
 
     /// <summary>
@@ -394,132 +404,114 @@ public sealed class VerificationApi
     /// Useful when you don't know the user's country code.
     /// </summary>
     public Task<PhoneValidationByIpResponse> ValidatePhoneByIpAsync(
-        string phoneNumber, string? ipAddress, CancellationToken cancellationToken = default)
+        string phoneNumber, string? ipAddress = null,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(phoneNumber))
             throw new ArgumentException("Phone number must not be empty.", nameof(phoneNumber));
-
         var p = new List<(string, string)>(2) { ("number", phoneNumber) };
         if (ipAddress != null) p.Add(("ip", ipAddress));
         return _client.GetAsync<PhoneValidationByIpResponse>("phone-number-validate-by-ip", p, cancellationToken);
     }
+
+    /// <summary>Verifies an email address — checks syntax, mail server, and disposable status.</summary>
+    public Task<EmailVerificationResponse> VerifyEmailAsync(
+        string emailAddress, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(emailAddress))
+            throw new ArgumentException("Email address must not be empty.", nameof(emailAddress));
+        return _client.GetAsync<EmailVerificationResponse>("email-verify",
+            new List<(string, string)>(1) { ("emailAddress", emailAddress) }, cancellationToken);
+    }
 }
 
-/// <summary>Network Engineering API methods.</summary>
+// ── Network Engineering Package ───────────────────────────────────────────────
+// Endpoints: asn-info-extended, bgp-active-prefixes, networks-by-cidr, tor-exit-nodes-geolocated
+// (+ sub-endpoints: asn-info-receiving-from, asn-info-transit-to, asn-rank-list)
+
+/// <summary>
+/// Network Engineering package — ASN intelligence, BGP prefix data, CIDR lookups, and Tor exit nodes.
+/// </summary>
 public sealed class NetworkEngineeringApi
 {
     private readonly BigDataCloudClient _client;
     internal NetworkEngineeringApi(BigDataCloudClient client) => _client = client;
 
-    /// <summary>Returns full ASN info including peers, transit, and confidence area.</summary>
-    public Task<AsnInfoResponse> GetAsnInfoAsync(
-        string asn, string localityLanguage = "en", CancellationToken ct = default) =>
-        _client.GetAsync<AsnInfoResponse>("asn-info-full",
-            new List<(string, string)>(2) { ("asn", asn), ("localityLanguage", localityLanguage) }, ct);
+    /// <summary>Returns extended ASN information including peers, transit relationships, prefix counts, and service area.</summary>
+    /// <param name="asn">ASN in numeric or prefixed format (e.g. "AS13335" or "13335").</param>
+    public Task<AsnInfoResponse> GetAsnInfoExtendedAsync(
+        string asn, string localityLanguage = "en", CancellationToken cancellationToken = default)
+    {
+        return _client.GetAsync<AsnInfoResponse>("asn-info-full",
+            new List<(string, string)>(2) { ("asn", asn), ("localityLanguage", localityLanguage) },
+            cancellationToken);
+    }
 
-    /// <summary>Returns short ASN info (no peers/transit lists).</summary>
-    public Task<AsnInfoShortResponse> GetAsnInfoShortAsync(
-        string asn, string localityLanguage = "en", CancellationToken ct = default) =>
-        _client.GetAsync<AsnInfoShortResponse>("asn-info",
-            new List<(string, string)>(2) { ("asn", asn), ("localityLanguage", localityLanguage) }, ct);
-
-    /// <summary>Returns paginated list of ASNs from which the given ASN receives traffic.</summary>
+    /// <summary>Returns paginated list of ASNs from which the given ASN receives traffic (upstream providers).</summary>
     public Task<AsnPeersResponse> GetReceivingFromAsync(
         string asn, int batchSize = 25, int offset = 0,
-        string localityLanguage = "en", CancellationToken ct = default) =>
-        _client.GetAsync<AsnPeersResponse>("asn-info-receiving-from",
+        string localityLanguage = "en", CancellationToken cancellationToken = default)
+    {
+        return _client.GetAsync<AsnPeersResponse>("asn-info-receiving-from",
             new List<(string, string)>(4) {
                 ("asn", asn), ("batchSize", batchSize.ToString()),
                 ("offset", offset.ToString()), ("localityLanguage", localityLanguage)
-            }, ct);
+            }, cancellationToken);
+    }
 
-    /// <summary>Returns paginated list of ASNs to which the given ASN provides transit.</summary>
+    /// <summary>Returns paginated list of ASNs to which the given ASN provides transit (downstream peers).</summary>
     public Task<AsnTransitResponse> GetTransitToAsync(
         string asn, int batchSize = 25, int offset = 0,
-        string localityLanguage = "en", CancellationToken ct = default) =>
-        _client.GetAsync<AsnTransitResponse>("asn-info-transit-to",
+        string localityLanguage = "en", CancellationToken cancellationToken = default)
+    {
+        return _client.GetAsync<AsnTransitResponse>("asn-info-transit-to",
             new List<(string, string)>(4) {
                 ("asn", asn), ("batchSize", batchSize.ToString()),
                 ("offset", offset.ToString()), ("localityLanguage", localityLanguage)
-            }, ct);
+            }, cancellationToken);
+    }
 
-    /// <summary>Returns paginated list of BGP prefixes for an ASN.</summary>
-    public Task<PrefixesListResponse> GetPrefixesAsync(
+    /// <summary>Returns paginated list of active BGP prefixes (IPv4 or IPv6) for an ASN.</summary>
+    /// <param name="asn">ASN in numeric or prefixed format.</param>
+    /// <param name="ipv4"><c>true</c> for IPv4 prefixes, <c>false</c> for IPv6.</param>
+    public Task<PrefixesListResponse> GetBgpPrefixesAsync(
         string asn, bool ipv4 = true, int batchSize = 25, int offset = 0,
-        CancellationToken ct = default) =>
-        _client.GetAsync<PrefixesListResponse>("prefixes-list",
+        CancellationToken cancellationToken = default)
+    {
+        return _client.GetAsync<PrefixesListResponse>("prefixes-list",
             new List<(string, string)>(4) {
                 ("asn", asn), ("isv4", ipv4 ? "true" : "false"),
                 ("batchSize", batchSize.ToString()), ("offset", offset.ToString())
-            }, ct);
+            }, cancellationToken);
+    }
 
-    /// <summary>Returns network information for a CIDR range.</summary>
-    public Task<NetworkByCidrResponse> GetNetworkByCidrAsync(
-        string cidr, string localityLanguage = "en", CancellationToken ct = default) =>
-        _client.GetAsync<NetworkByCidrResponse>("network-by-cidr",
-            new List<(string, string)>(2) { ("cidr", cidr), ("localityLanguage", localityLanguage) }, ct);
+    /// <summary>Returns all networks currently announced on BGP within a given CIDR range.</summary>
+    /// <param name="cidr">CIDR range to look up (e.g. "1.1.1.0/24").</param>
+    public Task<NetworkByCidrResponse> GetNetworksByCidrAsync(
+        string cidr, string localityLanguage = "en", CancellationToken cancellationToken = default)
+    {
+        return _client.GetAsync<NetworkByCidrResponse>("network-by-cidr",
+            new List<(string, string)>(2) { ("cidr", cidr), ("localityLanguage", localityLanguage) },
+            cancellationToken);
+    }
 
-    /// <summary>Returns network information for an IP address.</summary>
-    public Task<NetworkByIpResponse> GetNetworkByIpAsync(
-        string ipAddress, string localityLanguage = "en", CancellationToken ct = default) =>
-        _client.GetAsync<NetworkByIpResponse>("network-by-ip",
-            new List<(string, string)>(2) { ("ip", ipAddress), ("localityLanguage", localityLanguage) }, ct);
-
-    /// <summary>Returns paginated ranked list of all Autonomous Systems.</summary>
+    /// <summary>Returns paginated ranked list of all Autonomous Systems by IPv4 address space.</summary>
     public Task<AsnRankListResponse> GetAsnRankListAsync(
-        int batchSize = 15, int offset = 0, CancellationToken ct = default) =>
-        _client.GetAsync<AsnRankListResponse>("asn-rank-list",
+        int batchSize = 15, int offset = 0, CancellationToken cancellationToken = default)
+    {
+        return _client.GetAsync<AsnRankListResponse>("asn-rank-list",
             new List<(string, string)>(2) {
                 ("batchSize", batchSize.ToString()), ("offset", offset.ToString())
-            }, ct);
+            }, cancellationToken);
+    }
 
-    /// <summary>Returns paginated list of geolocated Tor exit nodes.</summary>
+    /// <summary>Returns paginated list of active Tor exit nodes, geolocated to country and carrier.</summary>
     public Task<TorExitNodesResponse> GetTorExitNodesAsync(
-        int batchSize = 25, int offset = 0, CancellationToken ct = default) =>
-        _client.GetAsync<TorExitNodesResponse>("tor-exit-nodes-list",
+        int batchSize = 25, int offset = 0, CancellationToken cancellationToken = default)
+    {
+        return _client.GetAsync<TorExitNodesResponse>("tor-exit-nodes-list",
             new List<(string, string)>(2) {
                 ("batchSize", batchSize.ToString()), ("offset", offset.ToString())
-            }, ct);
-
-    /// <summary>Returns country information by country code.</summary>
-    public Task<CountryInfoResponse> GetCountryInfoAsync(
-        string countryCode, string localityLanguage = "en", CancellationToken ct = default) =>
-        _client.GetAsync<CountryInfoResponse>("country-info",
-            new List<(string, string)>(2) { ("code", countryCode), ("localityLanguage", localityLanguage) }, ct);
-
-    /// <summary>Returns country information for an IP address.</summary>
-    public Task<CountryByIpResponse> GetCountryByIpAsync(
-        string? ipAddress = null, string localityLanguage = "en", CancellationToken ct = default)
-    {
-        var p = new List<(string, string)>(2) { ("localityLanguage", localityLanguage) };
-        if (ipAddress != null) p.Add(("ip", ipAddress));
-        return _client.GetAsync<CountryByIpResponse>("country-by-ip", p, ct);
+            }, cancellationToken);
     }
-
-    /// <summary>Returns hazard/threat report for an IP address.</summary>
-    public Task<HazardReportResponse> GetHazardReportAsync(
-        string? ipAddress = null, CancellationToken ct = default)
-    {
-        var p = new List<(string, string)>(1);
-        if (ipAddress != null) p.Add(("ip", ipAddress));
-        return _client.GetAsync<HazardReportResponse>("hazard-report", p, ct);
-    }
-
-    /// <summary>Returns user risk assessment for an IP address.</summary>
-    public Task<UserRiskResponse> GetUserRiskAsync(
-        string? ipAddress = null, CancellationToken ct = default)
-    {
-        var p = new List<(string, string)>(1);
-        if (ipAddress != null) p.Add(("ip", ipAddress));
-        return _client.GetAsync<UserRiskResponse>("user-risk", p, ct);
-    }
-
-    /// <summary>Returns a list of all countries with full details.</summary>
-    public Task<List<CountryInfoResponse>> GetAllCountriesAsync(
-        string localityLanguage = "en", CancellationToken ct = default) =>
-        _client.GetAsync<List<CountryInfoResponse>>("countries",
-            new List<(string, string)>(1) { ("localityLanguage", localityLanguage) }, ct);
-
 }
-
-

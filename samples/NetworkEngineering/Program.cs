@@ -10,7 +10,7 @@ var client = BigDataCloudClient.FromEnvironment();
 
 // ── 1. ASN Info Full (with peers) ────────────────────────────────────────────
 Console.WriteLine("\n=== ASN Info Full ===");
-var asnFull = await client.NetworkEngineering.GetAsnInfoAsync("AS13335");
+var asnFull = await client.NetworkEngineering.GetAsnInfoExtendedAsync("AS13335");
 Console.WriteLine($"ASN:              {asnFull.Asn}");
 Console.WriteLine($"Total Receiving:  {asnFull.TotalReceivingFrom}");
 Console.WriteLine($"Total Transit To: {asnFull.TotalTransitTo}");
@@ -30,14 +30,14 @@ foreach (var peer in receivingFrom.ReceivingFrom ?? [])
 
 // ── 3. Prefixes List ─────────────────────────────────────────────────────────
 Console.WriteLine("\n=== IPv4 Prefixes (AS13335, first 5) ===");
-var prefixes = await client.NetworkEngineering.GetPrefixesAsync("AS13335", ipv4: true, batchSize: 5);
+var prefixes = await client.NetworkEngineering.GetBgpPrefixesAsync("AS13335", ipv4: true, batchSize: 5);
 Console.WriteLine($"Total: {prefixes.Total}");
 foreach (var p in prefixes.Prefixes ?? [])
     Console.WriteLine($"  {p.Prefix}  {p.NetworkAddress} — {p.LastAddress}");
 
 // ── 4. Network by CIDR ───────────────────────────────────────────────────────
 Console.WriteLine("\n=== Network by CIDR ===");
-var net = await client.NetworkEngineering.GetNetworkByCidrAsync("1.1.1.0/24");
+var net = await client.NetworkEngineering.GetNetworksByCidrAsync("1.1.1.0/24");
 Console.WriteLine($"CIDR:         {net.Cidr}");
 Console.WriteLine($"Parent:       {net.Parent}");
 Console.WriteLine($"Organisation: {net.Network?.Organisation}");

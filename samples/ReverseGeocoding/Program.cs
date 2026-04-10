@@ -44,7 +44,7 @@ Console.WriteLine($"Country:     {japanese.CountryName}");
 
 // ── 4. Timezone by location ──────────────────────────────────────────────────
 Console.WriteLine("\n=== Timezone by Location ===");
-var tz = await client.IpGeolocation.GetTimezoneByLocationAsync(-33.8688, 151.2093); // Sydney
+var tz = await client.ReverseGeocoding.GetTimezoneByLocationAsync(-33.8688, 151.2093); // Sydney
 Console.WriteLine($"IANA ID:    {tz.IanaTimeId}");
 Console.WriteLine($"Display:    {tz.DisplayName}");
 Console.WriteLine($"UTC Offset: {tz.UtcOffset}");
