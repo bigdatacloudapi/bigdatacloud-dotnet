@@ -143,8 +143,8 @@ public class Location
     /// <summary>ISO 3166-1 Alpha-2 country code (e.g. "AU").</summary>
     [JsonPropertyName("countryCode")]                  public string? CountryCode { get; set; }
 
-    /// <summary>IANA time zone identifier for the location (e.g. "Australia/Sydney").</summary>
-    [JsonPropertyName("timeZone")]                     public string? TimeZone { get; set; }
+    /// <summary>Timezone details for the location, including IANA ID, UTC offset, and local time.</summary>
+    [JsonPropertyName("timeZone")]                     public TimezoneResponse? TimeZone { get; set; }
 
     /// <summary>Current local time at the location in ISO 8601 format.</summary>
     [JsonPropertyName("localTime")]                    public string? LocalTime { get; set; }
@@ -191,7 +191,7 @@ public class Carrier
     [JsonPropertyName("asn")]                  public string? Asn { get; set; }
 
     /// <summary>The Autonomous System Number as an unsigned integer (e.g. 13335).</summary>
-    [JsonPropertyName("asnNumeric")]           public int AsnNumeric { get; set; }
+    [JsonPropertyName("asnNumeric")]           public long AsnNumeric { get; set; }
 
     /// <summary>The organisation or entity the AS is registered for, as recorded in the RIR database.</summary>
     [JsonPropertyName("organisation")]         public string? Organisation { get; set; }

@@ -252,7 +252,7 @@ public sealed class IpGeolocationApi
     {
         var p = BuildParams(ipAddress, localityLanguage);
         return _client.GetAsync<IpGeolocationFullResponse>(
-            "ip-geolocation-with-confidence-area-and-hazard-report", p, cancellationToken);
+            "ip-geolocation-full", p, cancellationToken);
     }
 
     private static List<(string, string)> BuildParams(string? ipAddress, string localityLanguage)
@@ -293,19 +293,6 @@ public sealed class ReverseGeocodingApi
     {
         var p = BuildParams(latitude, longitude, localityLanguage);
         return _client.GetAsync<ReverseGeocodeResponse>("reverse-geocode", p, cancellationToken);
-    }
-
-    /// <summary>
-    /// Converts GPS coordinates to a city — simplified response.
-    /// </summary>
-    public Task<ReverseGeocodeResponse> ReverseGeocodeToCityAsync(
-        double latitude,
-        double longitude,
-        string localityLanguage = "en",
-        CancellationToken cancellationToken = default)
-    {
-        var p = BuildParams(latitude, longitude, localityLanguage);
-        return _client.GetAsync<ReverseGeocodeResponse>("reverse-geocode-to-city", p, cancellationToken);
     }
 
     /// <summary>
@@ -376,12 +363,13 @@ public sealed class VerificationApi
     /// Useful when you don't know the user's country code.
     /// </summary>
     public Task<PhoneValidationByIpResponse> ValidatePhoneByIpAsync(
-        string phoneNumber, CancellationToken cancellationToken = default)
+        string phoneNumber, string? ipAddress, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(phoneNumber))
             throw new ArgumentException("Phone number must not be empty.", nameof(phoneNumber));
 
-        var p = new List<(string, string)>(1) { ("number", phoneNumber) };
+        var p = new List<(string, string)>(2) { ("number", phoneNumber) };
+        if (ipAddress != null) p.Add(("ip", ipAddress));
         return _client.GetAsync<PhoneValidationByIpResponse>("phone-number-validate-by-ip", p, cancellationToken);
     }
 }

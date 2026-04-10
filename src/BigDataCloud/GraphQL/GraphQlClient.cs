@@ -54,7 +54,7 @@ public sealed class GraphQlClient
         string endpoint, string query, CancellationToken cancellationToken = default)
     {
         var payload = JsonSerializer.Serialize(new { query });
-        var url = $"graphql/{endpoint}?key={Uri.EscapeDataString(_apiKey)}";
+        var url = $"/graphql/{endpoint}?key={Uri.EscapeDataString(_apiKey)}";
 
         using var content = new StringContent(payload, Encoding.UTF8, "application/json");
         using var response = await _http.PostAsync(url, content, cancellationToken).ConfigureAwait(false);

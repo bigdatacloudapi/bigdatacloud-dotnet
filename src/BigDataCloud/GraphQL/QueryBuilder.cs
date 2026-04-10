@@ -97,7 +97,7 @@ public sealed class AsnInfoFullQueryBuilder
     private readonly QueryBuilder _b = new();
 
     /// <summary>Include basic ASN identification fields.</summary>
-    public AsnInfoFullQueryBuilder BasicInfo() { _b.Add("asn").Add("asnNumeric").Add("organisation").Add("name").Add("registry").Add("registeredCountry").Add("rank").Add("rankText").Add("totalIpv4Addresses").Add("totalIpv4Prefixes").Add("totalIpv6Prefixes"); return this; }
+    public AsnInfoFullQueryBuilder BasicInfo() { _b.Add("asn").Add("asnNumeric").Add("organisation").Add("name").Add("registry").AddNested("registeredCountry", new QueryBuilder().Add("isoAlpha2").Add("name")).Add("rank").Add("rankText").Add("totalIpv4Addresses").Add("totalIpv4Prefixes").Add("totalIpv6Prefixes"); return this; }
 
     /// <summary>Include upstream providers (receiving from).</summary>
     public AsnInfoFullQueryBuilder ReceivingFrom() { _b.Add("totalReceivingFrom").AddNested("receivingFrom", new QueryBuilder().Add("asn").Add("organisation").Add("registeredCountry").Add("rank")); return this; }
@@ -127,7 +127,7 @@ public sealed class CountryQueryBuilder
     public CountryQueryBuilder WorldBank() { _b.AddNested("wbRegion", new QueryBuilder().Add("value")).AddNested("wbIncomeLevel", new QueryBuilder().Add("value")); return this; }
 
     /// <summary>Include currency information.</summary>
-    public CountryQueryBuilder Currency() { _b.AddNested("currency", new QueryBuilder().Add("code").Add("name")); return this; }
+    public CountryQueryBuilder Currency() { _b.AddNested("currency", new QueryBuilder().Add("code")); return this; }
 
     /// <summary>Include flag emoji.</summary>
     public CountryQueryBuilder FlagEmoji() { _b.Add("countryFlagEmoji"); return this; }

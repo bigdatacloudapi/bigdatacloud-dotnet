@@ -25,13 +25,7 @@ if (result.LocalityInfo?.Administrative != null)
         Console.WriteLine($"  Level {item.AdminLevel}: {item.Name} ({item.IsoCode})");
 }
 
-// ── 2. Reverse Geocode to City (simplified) ──────────────────────────────────
-Console.WriteLine("\n=== Reverse Geocode to City ===");
-var city = await client.ReverseGeocoding.ReverseGeocodeToCityAsync(48.8566, 2.3522); // Paris
-Console.WriteLine($"City:    {city.City}");
-Console.WriteLine($"Country: {city.CountryName}");
-
-// ── 3. Reverse Geocode with Timezone ────────────────────────────────────────
+// ── 2. Reverse Geocode with Timezone ────────────────────────────────────────
 Console.WriteLine("\n=== Reverse Geocode with Timezone ===");
 var withTz = await client.ReverseGeocoding.ReverseGeocodeWithTimezoneAsync(35.6762, 139.6503); // Tokyo
 Console.WriteLine($"City:       {withTz.City}");
@@ -41,14 +35,14 @@ Console.WriteLine($"UTC Offset: {withTz.TimeZone?.UtcOffset}");
 Console.WriteLine($"DST:        {withTz.TimeZone?.IsDaylightSavingTime}");
 Console.WriteLine($"Local Time: {withTz.TimeZone?.LocalTime}");
 
-// ── 4. Different language example ────────────────────────────────────────────
+// ── 3. Different language example ────────────────────────────────────────────
 Console.WriteLine("\n=== Reverse Geocode in Japanese ===");
 var japanese = await client.ReverseGeocoding.ReverseGeocodeAsync(35.6762, 139.6503, "ja");
 Console.WriteLine($"City:        {japanese.City}");
 Console.WriteLine($"Subdivision: {japanese.PrincipalSubdivision}");
 Console.WriteLine($"Country:     {japanese.CountryName}");
 
-// ── 5. Timezone by location ──────────────────────────────────────────────────
+// ── 4. Timezone by location ──────────────────────────────────────────────────
 Console.WriteLine("\n=== Timezone by Location ===");
 var tz = await client.Timezone.GetByLocationAsync(-33.8688, 151.2093); // Sydney
 Console.WriteLine($"IANA ID:    {tz.IanaTimeId}");

@@ -19,12 +19,12 @@ Console.WriteLine($"Country:       {phone.Country?.Name} ({phone.Country?.IsoAlp
 
 // ── 2. Phone Validation — invalid number ─────────────────────────────────────
 Console.WriteLine("\n=== Phone Validation (invalid) ===");
-var invalidPhone = await client.Verification.ValidatePhoneAsync("1234");
+var invalidPhone = await client.Verification.ValidatePhoneAsync("1234", "US");
 Console.WriteLine($"Valid:     {invalidPhone.IsValid}");
 
 // ── 3. Phone Validation by IP (no country code needed) ───────────────────────
 Console.WriteLine("\n=== Phone Validation by IP ===");
-var phoneByIp = await client.Verification.ValidatePhoneByIpAsync("+442012345678");
+var phoneByIp = await client.Verification.ValidatePhoneByIpAsync("+442012345678", "138.38.223.217");
 Console.WriteLine($"Valid:     {phoneByIp.IsValid}");
 Console.WriteLine($"E.164:     {phoneByIp.E164Format}");
 Console.WriteLine($"Line Type: {phoneByIp.LineType}");
@@ -32,7 +32,7 @@ Console.WriteLine($"Country:   {phoneByIp.Country?.Name}");
 
 // ── 4. Email Verification ────────────────────────────────────────────────────
 Console.WriteLine("\n=== Email Verification ===");
-var email = await client.Verification.VerifyEmailAsync("user@bigdatacloud.com");
+var email = await client.Verification.VerifyEmailAsync("user@gmail.com");
 Console.WriteLine($"Input:          {email.InputData}");
 Console.WriteLine($"Valid:          {email.IsValid}");
 Console.WriteLine($"Syntax Valid:   {email.IsSyntaxValid}");

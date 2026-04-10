@@ -82,7 +82,7 @@ public class AsnInfoResponse
     [JsonPropertyName("asn")]                    public string? Asn { get; set; }
 
     /// <summary>The Autonomous System Number as an unsigned integer (e.g. 13335).</summary>
-    [JsonPropertyName("asnNumeric")]             public int AsnNumeric { get; set; }
+    [JsonPropertyName("asnNumeric")]             public long AsnNumeric { get; set; }
 
     /// <summary>The organisation or entity the AS is registered for, as recorded in the RIR database.</summary>
     [JsonPropertyName("organisation")]           public string? Organisation { get; set; }
