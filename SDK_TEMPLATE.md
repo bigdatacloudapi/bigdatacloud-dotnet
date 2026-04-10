@@ -178,9 +178,45 @@ One console project/script per package — **not unit tests**:
 Rules:
 - Read API key from `BIGDATACLOUD_API_KEY` env var
 - Print meaningful fields — no hardcoded assertions
-- Cover every public method in the package
+- **Cover EVERY public method in the package — use the tables below to verify count**
 - Show the `ConfidenceAreaHelper` / polygon splitting in the IP Geo sample
 - Show GraphQL typed builder AND raw query in the GraphQL sample
+
+### Required sample coverage (use as checklist)
+
+**IP Geolocation sample — 13 methods, all required:**
+1. `Get(ip)` → `ip-geolocation`
+2. `GetWithConfidenceArea(ip)` → `ip-geolocation-with-confidence` (+ SplitIntoPolygons)
+3. `GetFull(ip)` → `ip-geolocation-full`
+4. `GetCountryByIP(ip)` → `country-by-ip`
+5. `GetCountryInfo(code)` → `country-info`
+6. `GetAllCountries()` → `countries`
+7. `GetHazardReport(ip)` → `hazard-report`
+8. `GetUserRisk(ip)` → `user-risk`
+9. `GetASNInfo(asn)` → `asn-info`
+10. `GetNetworkByIP(ip)` → `network-by-ip`
+11. `GetTimezoneByIANAID(id)` → `timezone-info`
+12. `GetTimezoneByIP(ip)` → `timezone-by-ip`
+13. `ParseUserAgent(ua)` → `user-agent-info`
+
+**Reverse Geocoding sample — 3 methods, all required:**
+1. `ReverseGeocode(lat, lng)` → `reverse-geocode`
+2. `ReverseGeocodeWithTimezone(lat, lng)` → `reverse-geocode-with-timezone`
+3. `GetTimezoneByLocation(lat, lng)` → `timezone-by-location`
+
+**Verification sample — 3 methods, all required:**
+1. `ValidatePhone(number, countryCode)` → `phone-number-validate`
+2. `ValidatePhoneByIP(number, ip)` → `phone-number-validate-by-ip`
+3. `VerifyEmail(email)` → `email-verify`
+
+**Network Engineering sample — 7 methods, all required:**
+1. `GetASNInfoFull(asn)` → `asn-info-full`
+2. `GetReceivingFrom(asn, batchSize, offset)` → `asn-info-receiving-from`
+3. `GetTransitTo(asn, batchSize, offset)` → `asn-info-transit-to`
+4. `GetBGPPrefixes(asn, ipv4, batchSize, offset)` → `prefixes-list`
+5. `GetNetworksByCIDR(cidr)` → `network-by-cidr`
+6. `GetASNRankList(batchSize, offset)` → `asn-rank-list`
+7. `GetTorExitNodes(batchSize, offset)` → `tor-exit-nodes-list`
 
 ---
 
