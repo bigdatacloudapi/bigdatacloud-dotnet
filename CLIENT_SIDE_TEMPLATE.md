@@ -114,9 +114,14 @@ Language-native API that:
 
 ### Secondary (optional)
 - `amIRoaming()` — standalone call, no coordinates needed
-- Manual `reverseGeocode(lat, lng, accuracy)` — for when the app already has coordinates.
-  The caller must pass the `AccuracyLevel` that reflects how **they** obtained the coordinates.
-  Never hardcode `FINE` — the library has no way to know the source.
+
+### Do NOT expose a manual coordinate override
+
+Do not provide a `reverseGeocode(lat, lng)` method or promote "using existing coordinates".
+This endpoint is for **client-side, current device location only**.
+
+If someone already has coordinates, they should use the server SDK with an API key.
+Exposing a coordinate override encourages misuse of the free tier.
 
 ### Accuracy level enum (expose in all libraries)
 ```
