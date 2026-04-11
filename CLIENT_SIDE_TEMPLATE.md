@@ -114,7 +114,9 @@ Language-native API that:
 
 ### Secondary (optional)
 - `amIRoaming()` — standalone call, no coordinates needed
-- Manual `reverseGeocode(lat, lng)` — for when the app already has coordinates
+- Manual `reverseGeocode(lat, lng, accuracy)` — for when the app already has coordinates.
+  The caller must pass the `AccuracyLevel` that reflects how **they** obtained the coordinates.
+  Never hardcode `FINE` — the library has no way to know the source.
 
 ### Accuracy level enum (expose in all libraries)
 ```
