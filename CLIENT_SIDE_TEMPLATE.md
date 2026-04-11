@@ -117,11 +117,16 @@ Language-native API that:
 
 ### Do NOT expose a manual coordinate override
 
-Do not provide a `reverseGeocode(lat, lng)` method or promote "using existing coordinates".
-This endpoint is for **client-side, current device location only**.
+Do not provide a `reverseGeocode(lat, lng)` method. This is not just a best-practice preference —
+it violates BigDataCloud's [Free Client-Side API Fair Use Policy](https://www.bigdatacloud.com/docs/article/fair-use-policy-for-free-client-side-reverse-geocoding-api).
 
-If someone already has coordinates, they should use the server SDK with an API key.
-Exposing a coordinate override encourages misuse of the free tier.
+The policy explicitly states:
+- **Real-time coordinates only** — only the current, live location of the calling device.
+- **Pre-stored, cached, or externally-sourced coordinates are NOT permitted.**
+- Violations result in a **402 error and the IP address being banned**.
+
+If a developer already has coordinates from another source, direct them to the server-side
+reverse geocoding API (50,000 free queries/month with an API key): https://www.bigdatacloud.com/docs/sdks
 
 ### Accuracy level enum (expose in all libraries)
 ```
