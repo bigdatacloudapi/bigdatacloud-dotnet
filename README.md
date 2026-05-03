@@ -6,10 +6,12 @@
 
 Official .NET SDK for [BigDataCloud](https://www.bigdatacloud.com) APIs. Strongly-typed client for IP Geolocation, Reverse Geocoding, Phone & Email Verification, Network Engineering — plus a GraphQL interface for all packages.
 
+> **Published package:** this SDK is distributed on **NuGet.org** as [`BigDataCloud`](https://www.nuget.org/packages/BigDataCloud). The GitHub sidebar may show “Packages: 0” because NuGet.org packages are external to GitHub Packages.
+
 ## Installation
 
 ```shell
-dotnet add package BigDataCloud
+dotnet add package BigDataCloud --version 1.0.1
 ```
 
 ## API Key
