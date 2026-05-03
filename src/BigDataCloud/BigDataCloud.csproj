@@ -9,7 +9,8 @@
 
     <!-- NuGet package metadata -->
     <PackageId>BigDataCloud</PackageId>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
+    <PackageReleaseNotes>Patch release to publish the current BigDataCloud .NET SDK package metadata and repository state to NuGet. No breaking API changes.</PackageReleaseNotes>
     <Authors>BigDataCloud Pty Ltd</Authors>
     <Company>BigDataCloud Pty Ltd</Company>
     <Product>BigDataCloud .NET SDK</Product>
