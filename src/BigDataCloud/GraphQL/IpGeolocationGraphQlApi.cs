@@ -58,7 +58,7 @@ public sealed class IpGeolocationGraphQlApi
     public async Task<JsonElement> CountryInfoAsync(
         string countryCode, string locale = "en", CancellationToken cancellationToken = default)
     {
-        var query = $"{{ countryInfo(code: \"{countryCode}\", locale: \"{locale}\") {{ isoAlpha2 name isoName callingCode currency {{ code name }} wbRegion {{ value }} wbIncomeLevel {{ value }} }} }}";
+        var query = $"{{ countryInfo(code: \"{countryCode}\", locale: \"{locale}\") {{ isoAlpha2 name isoName callingCode currency {{ code isoName }} wbRegion {{ value }} wbIncomeLevel {{ value }} }} }}";
         var data = await _client.QueryRawAsync("ip-geolocation", query, cancellationToken).ConfigureAwait(false);
         return data.GetProperty("countryInfo");
     }
