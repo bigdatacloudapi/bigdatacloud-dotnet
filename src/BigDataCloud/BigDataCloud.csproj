@@ -33,7 +33,7 @@
 
   <!-- System.Text.Json for netstandard2.0 -->
   <ItemGroup>
-    <PackageReference Include="System.Text.Json" Version="10.0.7" />
+    <PackageReference Include="System.Text.Json" Version="10.0.8" />
   </ItemGroup>
 
 </Project>
