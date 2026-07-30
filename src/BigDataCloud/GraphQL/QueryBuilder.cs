@@ -118,6 +118,10 @@ public sealed class CountryQueryBuilder
 {
     internal readonly QueryBuilder _b = new();
 
+    /// <summary>
+    /// Creates a country field selection pre-populated with the most commonly used fields
+    /// (<c>isoAlpha2</c>, <c>name</c>, <c>callingCode</c>).
+    /// </summary>
     public CountryQueryBuilder() { _b.Add("isoAlpha2").Add("name").Add("callingCode"); }
 
     /// <summary>Include full ISO names.</summary>
@@ -138,6 +142,10 @@ public sealed class LocalityQueryBuilder
 {
     internal readonly QueryBuilder _b = new();
 
+    /// <summary>
+    /// Creates a locality field selection pre-populated with the most commonly used fields
+    /// (<c>city</c>, <c>localityName</c>, <c>principalSubdivision</c>, <c>postcode</c>, <c>continentCode</c>).
+    /// </summary>
     public LocalityQueryBuilder() { _b.Add("city").Add("localityName").Add("principalSubdivision").Add("postcode").Add("continentCode"); }
 
     /// <summary>Include ISO subdivision code.</summary>

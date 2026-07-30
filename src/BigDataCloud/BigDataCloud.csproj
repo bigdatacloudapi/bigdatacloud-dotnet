@@ -9,8 +9,21 @@
 
     <!-- NuGet package metadata -->
     <PackageId>BigDataCloud</PackageId>
-    <Version>1.0.1</Version>
-    <PackageReleaseNotes>Patch release to publish the current BigDataCloud .NET SDK package metadata and repository state to NuGet. No breaking API changes.</PackageReleaseNotes>
+    <Version>1.0.2</Version>
+    <PackageReleaseNotes>Maintenance and reliability release.
+
+Fixed:
+- GraphQL: a malformed or message-less `errors` array could throw KeyNotFoundException/InvalidOperationException instead of a BigDataCloudException, masking the real API error. All error entries are now surfaced.
+- GraphQL: the API returns validation errors with HTTP 400, which previously produced an unhelpful generic failure. Errors are now parsed before the status code is considered.
+- REST: a non-success response consumed the body as a stream after it had already been opened, which could yield an empty ResponseBody on some platforms.
+- REST: deserialisation failures now throw BigDataCloudException with context instead of a raw JsonException.
+
+Added:
+- BigDataCloudException.ApiDescription surfaces the API's own `description` field (e.g. "access denied or your quota limit has been exceeded").
+- User-Agent header identifying the SDK and runtime version.
+- Automatic gzip/deflate decompression, reducing bandwidth on large payloads such as ip-geolocation-full.
+
+No breaking API changes.</PackageReleaseNotes>
     <Authors>BigDataCloud Pty Ltd</Authors>
     <Company>BigDataCloud Pty Ltd</Company>
     <Product>BigDataCloud .NET SDK</Product>
@@ -21,7 +34,7 @@
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <Copyright>Copyright © 2024 BigDataCloud Pty Ltd</Copyright>
+    <Copyright>Copyright © 2026 BigDataCloud Pty Ltd</Copyright>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
@@ -29,6 +42,10 @@
 
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="BigDataCloud.Tests" />
   </ItemGroup>
 
   <!-- System.Text.Json for netstandard2.0 -->

@@ -58,21 +58,66 @@ public sealed class GraphQlClient
 
         using var content = new StringContent(payload, Encoding.UTF8, "application/json");
         using var response = await _http.PostAsync(url, content, cancellationToken).ConfigureAwait(false);
-        using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
-        var doc = await JsonSerializer.DeserializeAsync<JsonElement>(stream, _jsonOptions, cancellationToken)
-            .ConfigureAwait(false);
+        var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-        // Check for GraphQL-level errors
-        if (doc.TryGetProperty("errors", out var errors))
+        JsonElement doc;
+        try
         {
-            var msg = errors.EnumerateArray().FirstOrDefault().GetProperty("message").GetString();
-            throw new BigDataCloudException((int)response.StatusCode,
-                $"GraphQL error on '{endpoint}': {msg}");
+            doc = JsonSerializer.Deserialize<JsonElement>(body, _jsonOptions);
+        }
+        catch (JsonException ex)
+        {
+            // Non-JSON body (gateway HTML error page, truncated response, etc.)
+            throw new BigDataCloudException(
+                (int)response.StatusCode,
+                $"BigDataCloud GraphQL returned a non-JSON response from '{endpoint}' " +
+                $"(HTTP {(int)response.StatusCode}).",
+                ex);
         }
 
-        if (!doc.TryGetProperty("data", out var data))
-            throw new BigDataCloudException(200, $"Unexpected GraphQL response from '{endpoint}'.");
+        // GraphQL-level errors. Note: the API returns these with HTTP 400 as well as 200,
+        // so the errors array must be checked before the status code.
+        if (doc.ValueKind == JsonValueKind.Object &&
+            doc.TryGetProperty("errors", out var errors) &&
+            errors.ValueKind == JsonValueKind.Array &&
+            errors.GetArrayLength() > 0)
+        {
+            var messages = new List<string>();
+            foreach (var err in errors.EnumerateArray())
+            {
+                if (err.ValueKind == JsonValueKind.Object &&
+                    err.TryGetProperty("message", out var m) &&
+                    m.ValueKind == JsonValueKind.String)
+                {
+                    messages.Add(m.GetString()!);
+                }
+            }
+
+            var detail = messages.Count > 0
+                ? string.Join("; ", messages)
+                : "no error message supplied by the API";
+
+            throw new BigDataCloudException(
+                (int)response.StatusCode,
+                $"GraphQL error on '{endpoint}': {detail}",
+                body);
+        }
+
+        // No GraphQL errors array, but the transport still failed.
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new BigDataCloudException(
+                (int)response.StatusCode,
+                $"BigDataCloud GraphQL error {(int)response.StatusCode} on '{endpoint}'.",
+                body);
+        }
+
+        if (doc.ValueKind != JsonValueKind.Object || !doc.TryGetProperty("data", out var data))
+            throw new BigDataCloudException(
+                (int)response.StatusCode,
+                $"Unexpected GraphQL response from '{endpoint}' — no 'data' element.",
+                body);
 
         return data;
     }

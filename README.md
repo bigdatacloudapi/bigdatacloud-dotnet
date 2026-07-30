@@ -11,7 +11,7 @@ Official .NET SDK for [BigDataCloud](https://www.bigdatacloud.com) APIs. Strongl
 ## Installation
 
 ```shell
-dotnet add package BigDataCloud --version 1.0.1
+dotnet add package BigDataCloud --version 1.0.2
 ```
 
 ## API Key
@@ -143,6 +143,10 @@ builder.Services.AddHttpClient<BigDataCloudClient>((http, sp) =>
 
 ## Error Handling
 
+All API failures throw `BigDataCloudException` — including GraphQL errors and
+malformed responses, so you never have to catch `JsonException` or
+`KeyNotFoundException` yourself.
+
 ```csharp
 using BigDataCloud.Exceptions;
 
@@ -153,8 +157,25 @@ try
 catch (BigDataCloudException ex)
 {
     Console.WriteLine($"API error {ex.StatusCode}: {ex.Message}");
+
+    // The API's own explanation, e.g.
+    // "access denied or your quota limit has been exceeded"
+    Console.WriteLine(ex.ApiDescription);
+
+    // Full raw error payload when you need it
+    Console.WriteLine(ex.ResponseBody);
 }
 ```
+
+Common status codes:
+
+| Code | Meaning |
+|------|---------|
+| `400` | Bad request — check required parameters for the endpoint |
+| `403` | Invalid API key, or quota/plan limit exceeded |
+| `429` | Rate limit exceeded — back off and retry |
+
+Your API key is never included in exception messages or response bodies.
 
 ## Samples
 

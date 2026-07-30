@@ -59,8 +59,13 @@ public static class ConfidenceAreaHelper
                     ApproximatelyEqual(first.Longitude, point.Longitude))
                 {
                     current.Add(point); // include the closing point
-                    if (current.Count >= 4) // minimum valid polygon (3 distinct points + closing)
+
+                    // A valid ring needs 3 distinct points plus the closing point.
+                    // Degenerate rings (a repeated point or a 2-point spur) are dropped —
+                    // they cannot be rendered and break most spatial libraries.
+                    if (current.Count >= 4)
                         polygons.Add(current);
+
                     current = new List<GeoPoint>();
                     continue;
                 }
@@ -69,7 +74,8 @@ public static class ConfidenceAreaHelper
             current.Add(point);
         }
 
-        // Handle an unclosed trailing polygon (close it if it has enough points)
+        // Trailing points that never closed. Keep them if they can form a valid ring —
+        // dropping them would silently lose a real polygon from the response.
         if (current.Count >= 3)
         {
             current.Add(current[0]); // close it

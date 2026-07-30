@@ -14,6 +14,7 @@ public sealed class VerificationGraphQlApi
     /// Queries the <c>emailVerification</c> field — verifies an email address.
     /// </summary>
     /// <param name="emailAddress">Email address to verify.</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
     public async Task<JsonElement> EmailVerificationAsync(
         string emailAddress, CancellationToken cancellationToken = default)
     {
@@ -28,6 +29,7 @@ public sealed class VerificationGraphQlApi
     /// </summary>
     /// <param name="phoneNumber">Phone number to validate (E.164 format recommended).</param>
     /// <param name="countryCode">ISO 3166-1 Alpha-2 country code hint (e.g. "AU"). Optional.</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
     public async Task<JsonElement> PhoneNumberAsync(
         string phoneNumber, string? countryCode = null, CancellationToken cancellationToken = default)
     {

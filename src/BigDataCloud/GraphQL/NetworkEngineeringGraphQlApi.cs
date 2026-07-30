@@ -16,6 +16,7 @@ public sealed class NetworkEngineeringGraphQlApi
     /// <param name="asn">ASN in numeric or prefixed format (e.g. "AS13335" or "13335").</param>
     /// <param name="configure">Fluent builder to select response fields.</param>
     /// <param name="locale">Language for localised names.</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
     public async Task<JsonElement> AsnInfoFullAsync(
         string asn,
         Action<AsnInfoFullQueryBuilder>? configure = null,
@@ -38,6 +39,7 @@ public sealed class NetworkEngineeringGraphQlApi
     /// </summary>
     /// <param name="ipAddress">IPv4 or IPv6 address.</param>
     /// <param name="locale">Language for localised names.</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
     public async Task<JsonElement> NetworkByIpAsync(
         string ipAddress, string locale = "en", CancellationToken cancellationToken = default)
     {
@@ -50,6 +52,7 @@ public sealed class NetworkEngineeringGraphQlApi
     /// Queries the <c>inetnum</c> field — RIR registration details for an IP address.
     /// </summary>
     /// <param name="ipAddress">IPv4 or IPv6 address.</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
     public async Task<JsonElement> InetnumAsync(
         string ipAddress, CancellationToken cancellationToken = default)
     {

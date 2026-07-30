@@ -55,6 +55,7 @@ public sealed class IpGeolocationGraphQlApi
     /// </summary>
     /// <param name="countryCode">ISO 3166-1 Alpha-2, Alpha-3, or numeric code.</param>
     /// <param name="locale">Language for localised names.</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
     public async Task<JsonElement> CountryInfoAsync(
         string countryCode, string locale = "en", CancellationToken cancellationToken = default)
     {
@@ -67,6 +68,7 @@ public sealed class IpGeolocationGraphQlApi
     /// Queries the <c>userAgent</c> field — parses a User-Agent string.
     /// </summary>
     /// <param name="userAgentString">Raw User-Agent string to parse.</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
     public async Task<JsonElement> UserAgentAsync(
         string userAgentString, CancellationToken cancellationToken = default)
     {
@@ -80,6 +82,7 @@ public sealed class IpGeolocationGraphQlApi
     /// Queries the <c>timezoneInfo</c> field — timezone details by IANA ID.
     /// </summary>
     /// <param name="ianaTimeZoneId">IANA timezone ID (e.g. "Australia/Sydney").</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
     public async Task<JsonElement> TimezoneInfoAsync(
         string ianaTimeZoneId, CancellationToken cancellationToken = default)
     {

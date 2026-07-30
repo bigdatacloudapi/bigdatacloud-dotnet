@@ -120,13 +120,37 @@ public sealed class BigDataCloudClient : IDisposable
     private static HttpClient CreateDefaultHttpClient(string baseUrl)
     {
         var handler = new HttpClientHandler();
+
+        // Transparent gzip/deflate — ip-geolocation-full and asn-info-full payloads
+        // are several KB of JSON and compress well.
+        if (handler.SupportsAutomaticDecompression)
+        {
+            handler.AutomaticDecompression =
+                System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate;
+        }
+
         var http = new HttpClient(handler)
         {
             BaseAddress = new Uri(baseUrl),
             Timeout = TimeSpan.FromSeconds(30),
         };
         http.DefaultRequestHeaders.Add("Accept", "application/json");
+        http.DefaultRequestHeaders.Add("User-Agent", UserAgent);
         return http;
+    }
+
+    /// <summary>
+    /// User-Agent sent with every request, e.g. <c>bigdatacloud-dotnet/1.0.2 (.NET 8.0.0)</c>.
+    /// Lets BigDataCloud identify official SDK traffic.
+    /// </summary>
+    internal static readonly string UserAgent = BuildUserAgent();
+
+    private static string BuildUserAgent()
+    {
+        var version = typeof(BigDataCloudClient).Assembly
+            .GetName().Version?.ToString(3) ?? "0.0.0";
+        var runtime = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription;
+        return $"bigdatacloud-dotnet/{version} ({runtime})";
     }
 
     internal async Task<T> GetAsync<T>(
@@ -139,22 +163,65 @@ public sealed class BigDataCloudClient : IDisposable
         using var response = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
             .ConfigureAwait(false);
 
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            throw new BigDataCloudException(
+                (int)response.StatusCode,
+                BuildErrorMessage(endpoint, (int)response.StatusCode, body, out var description),
+                body,
+                description);
+        }
+
         using var stream = await response.Content.ReadAsStreamAsync()
             .ConfigureAwait(false);
 
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            using var reader = new System.IO.StreamReader(stream);
-            var body = await reader.ReadToEndAsync().ConfigureAwait(false);
+            return await JsonSerializer.DeserializeAsync<T>(stream, _jsonOptions, cancellationToken)
+                .ConfigureAwait(false)
+                ?? throw new BigDataCloudException(
+                    (int)response.StatusCode, $"Empty or null response from '{endpoint}'.");
+        }
+        catch (JsonException ex)
+        {
             throw new BigDataCloudException(
                 (int)response.StatusCode,
-                $"BigDataCloud API error {(int)response.StatusCode} on '{endpoint}'.",
-                body);
+                $"Could not deserialise the response from '{endpoint}'. " +
+                "The API returned a payload that did not match the expected shape.",
+                ex);
+        }
+    }
+
+    /// <summary>
+    /// Builds a useful error message, surfacing the API's own <c>description</c> field when present.
+    /// BigDataCloud REST errors are shaped: <c>{"status":403,"description":"..."}</c>
+    /// </summary>
+    private static string BuildErrorMessage(string endpoint, int statusCode, string body, out string? description)
+    {
+        description = null;
+
+        if (!string.IsNullOrWhiteSpace(body))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(body);
+                if (doc.RootElement.ValueKind == JsonValueKind.Object &&
+                    doc.RootElement.TryGetProperty("description", out var d) &&
+                    d.ValueKind == JsonValueKind.String)
+                {
+                    description = d.GetString();
+                }
+            }
+            catch (JsonException)
+            {
+                // Non-JSON error body — fall back to the generic message.
+            }
         }
 
-        return await JsonSerializer.DeserializeAsync<T>(stream, _jsonOptions, cancellationToken)
-            .ConfigureAwait(false)
-            ?? throw new BigDataCloudException(200, $"Empty or null response from '{endpoint}'.");
+        return description is { Length: > 0 }
+            ? $"BigDataCloud API error {statusCode} on '{endpoint}': {description}"
+            : $"BigDataCloud API error {statusCode} on '{endpoint}'.";
     }
 
     private string BuildUrl(string endpoint, IReadOnlyList<(string Key, string Value)> parameters)
@@ -190,6 +257,7 @@ public sealed class IpGeolocationApi
     /// <summary>Returns geolocation data for an IP address.</summary>
     /// <param name="ipAddress">IPv4 or IPv6 address. Omit to geolocate the caller's IP.</param>
     /// <param name="localityLanguage">Language for place names (ISO 639-1, e.g. "en").</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
     public Task<IpGeolocationResponse> GetAsync(
         string? ipAddress = null, string localityLanguage = "en",
         CancellationToken cancellationToken = default)
@@ -227,6 +295,8 @@ public sealed class IpGeolocationApi
 
     /// <summary>Returns detailed information about a country by ISO code.</summary>
     /// <param name="countryCode">ISO 3166-1 Alpha-2, Alpha-3, or numeric code (e.g. "AU").</param>
+    /// <param name="localityLanguage">Language for place names (ISO 639-1, e.g. "en").</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
     public Task<CountryInfoResponse> GetCountryInfoAsync(
         string countryCode, string localityLanguage = "en",
         CancellationToken cancellationToken = default)
@@ -264,6 +334,8 @@ public sealed class IpGeolocationApi
 
     /// <summary>Returns short ASN information for the AS announced for an IP address or by ASN number.</summary>
     /// <param name="asn">ASN in numeric or prefixed format (e.g. "AS13335" or "13335").</param>
+    /// <param name="localityLanguage">Language for place names (ISO 639-1, e.g. "en").</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
     public Task<AsnInfoShortResponse> GetAsnInfoAsync(
         string asn, string localityLanguage = "en", CancellationToken cancellationToken = default)
     {
@@ -284,6 +356,7 @@ public sealed class IpGeolocationApi
     /// <summary>Returns timezone information for an IANA timezone ID.</summary>
     /// <param name="ianaTimeZoneId">IANA timezone ID (e.g. "Australia/Sydney").</param>
     /// <param name="utcReferenceSeconds">UTC reference time in Unix seconds. Omit for current time.</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
     public Task<TimezoneResponse> GetTimezoneByIanaIdAsync(
         string ianaTimeZoneId, long? utcReferenceSeconds = null,
         CancellationToken cancellationToken = default)
@@ -337,6 +410,7 @@ public sealed class ReverseGeocodingApi
     /// <param name="latitude">Latitude in decimal degrees (WGS 84).</param>
     /// <param name="longitude">Longitude in decimal degrees (WGS 84).</param>
     /// <param name="localityLanguage">Language for place names (ISO 639-1). Default: "en".</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
     public Task<ReverseGeocodeResponse> ReverseGeocodeAsync(
         double latitude, double longitude, string localityLanguage = "en",
         CancellationToken cancellationToken = default)
@@ -388,6 +462,7 @@ public sealed class VerificationApi
     /// <summary>Validates a phone number and returns its E.164 format, line type, and country.</summary>
     /// <param name="phoneNumber">Phone number to validate (E.164 format recommended, e.g. +61412345678).</param>
     /// <param name="countryCode">ISO 3166-1 Alpha-2 country code hint (e.g. "AU"). Optional.</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
     public Task<PhoneValidationResponse> ValidatePhoneAsync(
         string phoneNumber, string? countryCode = null,
         CancellationToken cancellationToken = default)
@@ -439,6 +514,8 @@ public sealed class NetworkEngineeringApi
 
     /// <summary>Returns extended ASN information including peers, transit relationships, prefix counts, and service area.</summary>
     /// <param name="asn">ASN in numeric or prefixed format (e.g. "AS13335" or "13335").</param>
+    /// <param name="localityLanguage">Language for place names (ISO 639-1, e.g. "en").</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
     public Task<AsnInfoResponse> GetAsnInfoExtendedAsync(
         string asn, string localityLanguage = "en", CancellationToken cancellationToken = default)
     {
@@ -474,6 +551,9 @@ public sealed class NetworkEngineeringApi
     /// <summary>Returns paginated list of active BGP prefixes (IPv4 or IPv6) for an ASN.</summary>
     /// <param name="asn">ASN in numeric or prefixed format.</param>
     /// <param name="ipv4"><c>true</c> for IPv4 prefixes, <c>false</c> for IPv6.</param>
+    /// <param name="batchSize">Number of records to return per page.</param>
+    /// <param name="offset">Zero-based record offset for pagination.</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
     public Task<PrefixesListResponse> GetBgpPrefixesAsync(
         string asn, bool ipv4 = true, int batchSize = 25, int offset = 0,
         CancellationToken cancellationToken = default)
@@ -487,6 +567,8 @@ public sealed class NetworkEngineeringApi
 
     /// <summary>Returns all networks currently announced on BGP within a given CIDR range.</summary>
     /// <param name="cidr">CIDR range to look up (e.g. "1.1.1.0/24").</param>
+    /// <param name="localityLanguage">Language for place names (ISO 639-1, e.g. "en").</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
     public Task<NetworkByCidrResponse> GetNetworksByCidrAsync(
         string cidr, string localityLanguage = "en", CancellationToken cancellationToken = default)
     {
